@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.ipa
+
+# ML models (too large for Git)
+*.pt
+*.mlpackage
+*.mlmodel
+
+# System
+.DS_Store
