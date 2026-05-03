@@ -351,15 +351,12 @@
       var files = Array.from(e.target.files);
       var remaining = MAX_PHOTOS - photos.length;
       files.slice(0, remaining).forEach(function(file) {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          photos.push(ev.target.result);
-          selectedIndex = photos.length - 1;
-          renderStrip();
-          renderMain();
-          updateNextBtn();
-        };
-        reader.readAsDataURL(file);
+var url = URL.createObjectURL(file);
+photos.push(url);
+selectedIndex = photos.length - 1;
+renderStrip();
+renderMain();
+updateNextBtn();
       });
       e.target.value = '';
     });
@@ -442,18 +439,50 @@
     document.getElementById('sku-input').focus();
   }
 
-  function saveItem() {
-    var sku = document.getElementById('sku-input').value.trim();
-    var name = document.getElementById('name-input').value.trim();
-    if (!sku || !name) {
-      alert('Please enter both SKU and item name.');
-      return;
-    }
-    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
-    items.unshift({ name: name, sku: sku, photos: photos });
-    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
-    window.location.href = 'index.html';
+function saveItem() {
+  var sku = document.getElementById('sku-input').value.trim();
+  var name = document.getElementById('name-input').value.trim();
+  if (!sku || !name) {
+    alert('Please enter both SKU and item name.');
+    return;
   }
+
+  // convert first photo to base64 for thumbnail survival across navigation
+  // remaining photos stay as blob URLs for now (backend will replace this)
+  if (photos.length === 0) {
+    persistItem(name, sku, null);
+    return;
+  }
+
+  fetch(photos[0])
+    .then(function(res) { return res.blob(); })
+    .then(function(blob) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        persistItem(name, sku, ev.target.result);
+      };
+      reader.readAsDataURL(blob);
+    });
+}
+
+function persistItem(name, sku, thumbnailBase64) {
+  try {
+    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
+    items.unshift({
+      name: name,
+      sku: sku,
+      thumbnail: thumbnailBase64,
+      photos: photos
+    });
+    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+  } catch(e) {
+    // sessionStorage full — save without thumbnail
+    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
+    items.unshift({ name: name, sku: sku, thumbnail: null, photos: [] });
+    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+  }
+  window.location.href = 'index.html';
+}
 
   function goBack() {
     window.location.href = 'index.html';

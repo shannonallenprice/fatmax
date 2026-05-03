@@ -172,8 +172,8 @@ const items = saved.length ? saved : defaults;
     }
     el.innerHTML = list.map(item => `
       <div class="item">
-        <div class="thumb">${item.photos && item.photos[0] ? `<img src="${item.photos[0]}" style="width:100%;height:100%;object-fit:cover"/>` : thumbSVG}</div>
-        <div class="item-info">
+        <div class="thumb">${item.thumbnail ? '<img src="' + item.thumbnail + '" style="width:100%;height:100%;object-fit:cover"/>' : thumbSVG}</div>
+          <div class="item-info">
           <div class="item-name">${item.name}</div>
           <div class="item-sku">${item.sku}</div>
         </div>
