@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fatmax — New Item</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #FFFDF7;
+      color: #1a1a1a;
+      max-width: 390px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 48px 20px 16px;
+      border-bottom: 2px solid #1a1a1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+
+    .step-label {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      margin-top: 5px;
+      text-transform: uppercase;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #888;
+      cursor: pointer;
+      letter-spacing: 1px;
+      padding: 4px 0;
+    }
+
+    .step-indicator {
+      display: flex;
+      gap: 6px;
+      padding: 16px 20px 0;
+    }
+
+    .step-dot { width: 20px; height: 3px; background: #e0ddd6; }
+    .step-dot.active { background: #FAB413; }
+    .step-dot.done { background: #1a1a1a; }
+
+    #step-photo { display: block; }
+    #step-details { display: none; }
+
+    /* ── Main photo viewer ── */
+    .main-photo-wrap {
+      width: 100%;
+      height: 260px;
+      background: #f0ede6;
+      border-bottom: 1px solid #e0ddd6;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .main-photo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .main-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .main-placeholder-text {
+      font-size: 10px;
+      color: #aaa;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .photo-count-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      display: none;
+    }
+
+    /* ── Thumbnail strip ── */
+    .thumb-strip {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      overflow-x: auto;
+      border-bottom: 1px solid #e0ddd6;
+      scrollbar-width: none;
+    }
+
+    .thumb-strip::-webkit-scrollbar { display: none; }
+
+    .thumb-tile {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      cursor: pointer;
+      position: relative;
+      border: 1.5px solid transparent;
+    }
+
+    .thumb-tile.selected { border-color: #FAB413; }
+
+    .thumb-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 16px;
+      height: 16px;
+      background: #1a1a1a;
+      color: #FFFDF7;
+      border: none;
+      border-radius: 50%;
+      font-size: 10px;
+      line-height: 16px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .thumb-add {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      border: 1.5px dashed #ccc;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      color: #aaa;
+      font-family: 'Courier New', monospace;
+    }
+
+    .thumb-add:active { background: #f0ede6; }
+
+    /* ── Photo actions ── */
+    .photo-actions {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background: #FAB413;
+      color: #000000;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+      width: 100%;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary:not(:disabled):active { opacity: 0.85; }
+
+    .btn-secondary {
+      background: transparent;
+      color: #1a1a1a;
+      border: 1.5px solid #1a1a1a;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+      width: 100%;
+    }
+
+    .btn-secondary:active { background: #f0ede6; }
+
+    #camera-input, #upload-input { display: none; }
+
+    /* ── Details step ── */
+    .details-form {
+      padding: 24px 20px 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .details-thumbs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .details-thumbs::-webkit-scrollbar { display: none; }
+
+    .details-thumb-img {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border: 1px solid #e0ddd6;
+      flex-shrink: 0;
+    }
+
+    .field-label {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      margin-top: 20px;
+    }
+
+    .field-label:first-of-type { margin-top: 0; }
+
+    .field-input {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid #1a1a1a;
+      outline: none;
+      width: 100%;
+      padding: 8px 0;
+      color: #1a1a1a;
+    }
+
+    .field-input::placeholder { color: #ccc; }
+    .field-input:focus { border-bottom-color: #FAB413; }
+
+    .save-area { padding: 24px 20px 40px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>NEW ITEM</h1>
+    <div class="step-label" id="step-label">Step 1 of 2 — Photos</div>
+  </div>
+  <button class="back-btn" onclick="goBack()">← Back</button>
+</header>
+
+<div class="step-indicator">
+  <div class="step-dot active" id="dot-1"></div>
+  <div class="step-dot" id="dot-2"></div>
+</div>
+
+<!-- STEP 1: Photos -->
+<div id="step-photo">
+
+  <div class="main-photo-wrap">
+    <img id="main-img" alt="main photo"/>
+    <div class="main-placeholder" id="main-placeholder">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect x="2" y="8" width="28" height="20" rx="2" stroke="#ccc" stroke-width="1.5"/>
+        <circle cx="16" cy="18" r="5" stroke="#ccc" stroke-width="1.5"/>
+        <path d="M11 8l2-4h6l2 4" stroke="#ccc" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+      <div class="main-placeholder-text">No photos yet</div>
+    </div>
+    <div class="photo-count-badge" id="photo-count-badge"></div>
+  </div>
+
+  <div class="thumb-strip" id="thumb-strip">
+    <button class="thumb-add" id="thumb-add-btn" onclick="promptAdd()">+</button>
+  </div>
+
+  <div class="photo-actions">
+    <button class="btn-primary" id="next-btn" onclick="goToDetails()" disabled>
+      Next — Add details
+    </button>
+    <button class="btn-secondary" onclick="document.getElementById('upload-input').click()">
+      Upload from camera roll
+    </button>
+    <button class="btn-secondary" onclick="document.getElementById('camera-input').click()">
+      Take photo
+    </button>
+  </div>
+</div>
+
+<!-- STEP 2: Details -->
+<div id="step-details">
+  <div class="details-form">
+    <div class="details-thumbs" id="details-thumbs"></div>
+    <div class="field-label">SKU</div>
+    <input class="field-input" id="sku-input" type="text" placeholder="SKU-0000"/>
+    <div class="field-label">Item name</div>
+    <input class="field-input" id="name-input" type="text" placeholder="e.g. Vintage Levi jacket"/>
+  </div>
+  <div class="save-area">
+    <button class="btn-primary" onclick="saveItem()">Save item</button>
+  </div>
+</div>
+
+<input id="camera-input" type="file" accept="image/*" capture="environment"/>
+<input id="upload-input" type="file" accept="image/*" multiple/>
+
+<script>
+  var photos = [];
+  var selectedIndex = 0;
+  var MAX_PHOTOS = 6;
+
+  function promptAdd() {
+    document.getElementById('upload-input').click();
+  }
+
+  ['camera-input', 'upload-input'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function(e) {
+      var files = Array.from(e.target.files);
+      var remaining = MAX_PHOTOS - photos.length;
+      files.slice(0, remaining).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          photos.push(ev.target.result);
+          selectedIndex = photos.length - 1;
+          renderStrip();
+          renderMain();
+          updateNextBtn();
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = '';
+    });
+  });
+
+  function renderMain() {
+    var img = document.getElementById('main-img');
+    var placeholder = document.getElementById('main-placeholder');
+    var badge = document.getElementById('photo-count-badge');
+    if (photos.length === 0) {
+      img.style.display = 'none';
+      placeholder.style.display = 'flex';
+      badge.style.display = 'none';
+    } else {
+      img.src = photos[selectedIndex];
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+      badge.style.display = 'block';
+      badge.textContent = (selectedIndex + 1) + ' / ' + photos.length;
+    }
+  }
+
+  function renderStrip() {
+    var strip = document.getElementById('thumb-strip');
+    strip.innerHTML = '';
+
+    photos.forEach(function(src, i) {
+      var tile = document.createElement('div');
+      tile.className = 'thumb-tile' + (i === selectedIndex ? ' selected' : '');
+
+      var img = document.createElement('img');
+      img.src = src;
+      img.alt = 'photo ' + (i + 1);
+      img.onclick = (function(idx) {
+        return function() { selectedIndex = idx; renderMain(); renderStrip(); };
+      })(i);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'thumb-remove';
+      removeBtn.textContent = '×';
+      removeBtn.onclick = (function(idx) {
+        return function(e) {
+          e.stopPropagation();
+          photos.splice(idx, 1);
+          if (selectedIndex >= photos.length) selectedIndex = photos.length - 1;
+          renderStrip();
+          renderMain();
+          updateNextBtn();
+        };
+      })(i);
+
+      tile.appendChild(img);
+      tile.appendChild(removeBtn);
+      strip.appendChild(tile);
+    });
+
+    if (photos.length < MAX_PHOTOS) {
+      var addBtn = document.createElement('button');
+      addBtn.className = 'thumb-add';
+      addBtn.textContent = '+';
+      addBtn.onclick = promptAdd;
+      strip.appendChild(addBtn);
+    }
+  }
+
+  function updateNextBtn() {
+    document.getElementById('next-btn').disabled = photos.length === 0;
+  }
+
+  function goToDetails() {
+    var thumbs = document.getElementById('details-thumbs');
+    thumbs.innerHTML = photos.map(function(src) {
+      return '<img class="details-thumb-img" src="' + src + '" alt="thumb"/>';
+    }).join('');
+    document.getElementById('step-photo').style.display = 'none';
+    document.getElementById('step-details').style.display = 'block';
+    document.getElementById('step-label').textContent = 'Step 2 of 2 — Details';
+    document.getElementById('dot-1').className = 'step-dot done';
+    document.getElementById('dot-2').className = 'step-dot active';
+    document.getElementById('sku-input').focus();
+  }
+
+  function saveItem() {
+    var sku = document.getElementById('sku-input').value.trim();
+    var name = document.getElementById('name-input').value.trim();
+    if (!sku || !name) {
+      alert('Please enter both SKU and item name.');
+      return;
+    }
+    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
+    items.unshift({ name: name, sku: sku, photos: photos });
+    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+    window.location.href = 'index.html';
+  }
+
+  function goBack() {
+    window.location.href = 'index.html';
+  }
+
+  renderStrip();
+  renderMain();
+</script>
+</body>
+</html>

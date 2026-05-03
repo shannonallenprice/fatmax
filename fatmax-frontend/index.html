@@ -134,7 +134,7 @@
     <h1>FATMAX</h1>
     <div id="item-count">3 items</div>
   </div>
-  <button id="new-btn">+ New item</button>
+<button id="new-btn" onclick="window.location.href='new-item.html'">+ New item</button>
 </header>
 
 <div class="search-bar">
@@ -148,11 +148,13 @@
 <div id="list"></div>
 
 <script>
-  const items = [
-    { name: "Vintage Levi jacket", sku: "SKU-0042" },
-    { name: "Nike Air Max 90",     sku: "SKU-0031" },
-    { name: "Carhartt WIP trousers", sku: "SKU-0019" }
-  ];
+const saved = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
+const defaults = [
+  { name: "Vintage Levi jacket",   sku: "SKU-0042", photos: ["https://images.unsplash.com/photo-1573662073208-1f58a071c756?w=200&fit=crop"] },
+  { name: "Nike Air Max 90",       sku: "SKU-0031", photos: ["https://images.unsplash.com/photo-1623816874982-aab879ea7073?w=200&fit=crop"] },
+  { name: "Carhartt WIP trousers", sku: "SKU-0019", photos: ["https://images.unsplash.com/photo-1622408298915-24d322badf9e?w=200&fit=crop"] }
+];
+const items = saved.length ? saved : defaults;
 
   const thumbSVG = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <rect x="1" y="4" width="16" height="11" rx="1" stroke="#ccc" stroke-width="1.2"/>
@@ -170,7 +172,7 @@
     }
     el.innerHTML = list.map(item => `
       <div class="item">
-        <div class="thumb">${thumbSVG}</div>
+        <div class="thumb">${item.photos && item.photos[0] ? `<img src="${item.photos[0]}" style="width:100%;height:100%;object-fit:cover"/>` : thumbSVG}</div>
         <div class="item-info">
           <div class="item-name">${item.name}</div>
           <div class="item-sku">${item.sku}</div>
