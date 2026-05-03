@@ -1,0 +1,174 @@
+/* ── Reset ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── Base ── */
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background: #FFFDF7;
+  color: #1a1a1a;
+  max-width: 390px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  padding: 48px 20px 16px;
+  border-bottom: 2px solid #1a1a1a;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+  letter-spacing: 1px;
+  padding: 4px 0;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  background: #FAB413;
+  color: #000000;
+  border: none;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary:not(:disabled):active { opacity: 0.85; }
+
+.btn-secondary {
+  background: transparent;
+  color: #1a1a1a;
+  border: 1.5px solid #1a1a1a;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.btn-secondary:active { background: #f0ede6; }
+
+.btn-danger {
+  background: transparent;
+  color: #FF2800;
+  border: 1.5px solid #FF2800;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.btn-danger:active { background: #fff0ee; }
+
+/* ── Section label ── */
+.section-label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid #e0ddd6;
+}
+
+/* ── Step indicator ── */
+.step-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 16px 20px 0;
+}
+
+.step-dot { width: 20px; height: 3px; background: #e0ddd6; }
+.step-dot.active { background: #FAB413; }
+.step-dot.done { background: #1a1a1a; }
+
+/* ── Form fields ── */
+.field-label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  margin-top: 20px;
+}
+
+.field-input {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid #1a1a1a;
+  outline: none;
+  width: 100%;
+  padding: 8px 0;
+  color: #1a1a1a;
+}
+
+.field-input::placeholder { color: #ccc; }
+.field-input:focus { border-bottom-color: #FAB413; }
+
+/* ── Search bar ── */
+.search-bar {
+  padding: 10px 20px;
+  border-bottom: 1px solid #e0ddd6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-bar input {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: #1a1a1a;
+  letter-spacing: 0.5px;
+}
+
+.search-bar input::placeholder { color: #aaa; }
+
+/* ── Thumbnail ── */
+.thumb {
+  width: 52px;
+  height: 52px;
+  background: #f0ede6;
+  border: 1px solid #dddad2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
