@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Fatmax — Measure</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── Stages ── */
+    #stage-detecting { display: block; }
+    #stage-ref       { display: none; }
+    #stage-ref-draw  { display: none; }
+    #stage-measure   { display: none; }
+    #stage-label     { display: none; }
+
+    .stage-header {
+      padding: 48px 20px 16px;
+      border-bottom: 2px solid #1a1a1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .stage-title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+
+    .stage-sub {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+
+    /* ── Reference picker ── */
+    .ref-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    .ref-option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1.5px solid #e0ddd6;
+      cursor: pointer;
+      background: #FFFDF7;
+    }
+
+    .ref-option:active { background: #f0ede6; }
+    .ref-option.selected { border-color: #FAB413; background: #fffbf0; }
+
+    .ref-icon {
+      width: 48px;
+      height: 48px;
+      background: #f0ede6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ref-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .ref-dims { font-size: 10px; color: #888; letter-spacing: 1px; }
+
+    /* ── Canvas area ── */
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      background: #1a1a1a;
+      touch-action: none;
+    }
+
+    .canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .canvas-instruction {
+      position: absolute;
+      bottom: 10px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      pointer-events: none;
+    }
+
+    /* ── Actions below canvas ── */
+    .canvas-actions {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── Measurement label picker ── */
+    .label-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 16px 20px;
+    }
+
+    .label-chip {
+      padding: 12px 10px;
+      border: 1.5px solid #e0ddd6;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: #FFFDF7;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .label-chip:active { background: #f0ede6; }
+    .label-chip.selected { border-color: #FAB413; background: #fffbf0; }
+
+    .custom-label-wrap { padding: 0 20px 16px; }
+
+    /* ── Unit toggle ── */
+    .unit-toggle {
+      display: flex;
+      border: 1.5px solid #1a1a1a;
+    }
+
+    .unit-btn {
+      flex: 1;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .unit-btn.active { background: #1a1a1a; color: #FFFDF7; }
+
+    /* ── Result display ── */
+    .result-banner {
+      margin: 16px 20px;
+      padding: 16px;
+      background: #f0ede6;
+      border: 1px solid #e0ddd6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .result-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .result-label-text {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     STAGE 0: Auto-detecting
+════════════════════════════════════ -->
+<div id="stage-detecting">
+  <div class="stage-header">
+    <div>
+      <div class="stage-title">DETECTING</div>
+      <div class="stage-sub">Scanning for reference object...</div>
+    </div>
+    <button class="back-btn" onclick="goBack()">← Back</button>
+  </div>
+
+  <div style="padding:60px 20px;text-align:center">
+    <div id="detect-spinner" style="font-size:11px;color:#888;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px">
+      Scanning photo...
+    </div>
+    <div id="detect-result" style="display:none">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="detect-result-text"></div>
+      <div style="font-size:10px;color:#888;letter-spacing:1px" id="detect-confidence-text"></div>
+    </div>
+  </div>
+
+  <div class="canvas-actions" id="detect-actions" style="display:none">
+    <button class="btn-primary" id="btn-use-detected" onclick="useDetectedReference()">
+      Use detected reference
+    </button>
+    <button class="btn-secondary" onclick="showStage('stage-ref')">
+      Mark manually instead
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STAGE 1: Pick reference object (manual fallback)
+════════════════════════════════════ -->
+<div id="stage-ref">
+  <div class="stage-header">
+    <div>
+      <div class="stage-title">REFERENCE</div>
+      <div class="stage-sub">Step 1 of 4 — Pick object</div>
+    </div>
+    <button class="back-btn" onclick="showStage('stage-detecting')">← Back</button>
+  </div>
+
+  <div style="padding:16px 20px 8px;font-size:11px;color:#888;letter-spacing:0.5px;line-height:1.6">
+    Place one of these objects next to the item in the photo.
+    We'll use it to calculate real-world scale.
+  </div>
+
+  <div class="ref-list" id="ref-list"></div>
+
+  <div class="canvas-actions">
+    <button class="btn-primary" id="ref-next-btn" onclick="goToRefDraw()" disabled>
+      Next — Mark reference
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STAGE 2: Mark reference on photo
+════════════════════════════════════ -->
+<div id="stage-ref-draw">
+  <div class="stage-header">
+    <div>
+      <div class="stage-title">MARK REFERENCE</div>
+      <div class="stage-sub" id="ref-draw-sub">Step 2 of 4 — Tap two edges</div>
+    </div>
+    <button class="back-btn" onclick="showStage('stage-ref')">← Back</button>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="ref-canvas"></canvas>
+    <div class="canvas-instruction" id="ref-instruction">Tap one edge of the object</div>
+  </div>
+
+  <div class="canvas-actions">
+    <button class="btn-secondary" onclick="resetRefPoints()">Reset points</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STAGE 3: Draw measurement line
+════════════════════════════════════ -->
+<div id="stage-measure">
+  <div class="stage-header">
+    <div>
+      <div class="stage-title">MEASURE</div>
+      <div class="stage-sub">Step 3 of 4 — Tap two points</div>
+    </div>
+    <button class="back-btn" onclick="showStage('stage-ref-draw')">← Back</button>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="measure-canvas"></canvas>
+    <div class="canvas-instruction" id="measure-instruction">Tap start point</div>
+  </div>
+
+  <div class="canvas-actions">
+    <button class="btn-secondary" onclick="resetMeasurePoints()">Reset points</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STAGE 4: Label + save
+════════════════════════════════════ -->
+<div id="stage-label">
+  <div class="stage-header">
+    <div>
+      <div class="stage-title">LABEL</div>
+      <div class="stage-sub">Step 4 of 4 — Name this measurement</div>
+    </div>
+    <button class="back-btn" onclick="showStage('stage-measure')">← Back</button>
+  </div>
+
+  <div class="result-banner">
+    <div>
+      <div class="result-value" id="result-display">—</div>
+      <div class="result-label-text" id="result-label-name">Select a label below</div>
+    </div>
+    <div class="unit-toggle">
+      <button class="unit-btn active" id="btn-cm" onclick="setUnit('cm')">CM</button>
+      <button class="unit-btn" id="btn-in" onclick="setUnit('in')">IN</button>
+    </div>
+  </div>
+
+  <div class="label-grid" id="label-grid"></div>
+
+  <div class="custom-label-wrap">
+    <input class="field-input" id="custom-label" type="text" placeholder="Or type a custom label..."/>
+  </div>
+
+  <div class="canvas-actions">
+    <button class="btn-primary" id="save-btn" onclick="saveMeasurement()" disabled>
+      Save measurement
+    </button>
+  </div>
+</div>
+
+<script>
+  // ── Constants ──────────────────────────────────────────────────────────────
+  var REFS = [
+    { id: 'credit-card', name: 'Credit / debit card', dims: '85.6 × 54mm',  mmWidth: 85.6,  mmHeight: 54,    icon: '💳' },
+    { id: 'a4',          name: 'A4 paper',            dims: '297 × 210mm',  mmWidth: 297.0, mmHeight: 210.0, icon: '📄' },
+    { id: 'quarter',     name: 'US quarter',          dims: '24.26mm diam', mmWidth: 24.26, mmHeight: 24.26, icon: '🪙' }
+  ];
+
+  var LABELS = [
+    'Shoulder', 'Chest', 'Waist', 'Hip',
+    'Length',   'Sleeve', 'Inseam', 'Hem',
+    'Width',    'Height', 'Depth',  'Diameter'
+  ];
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var params      = new URLSearchParams(window.location.search);
+  var itemIndex   = parseInt(params.get('index'));
+  var items       = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
+  var item        = items[itemIndex];
+
+  var selectedRef     = null;
+  var refPoints       = [];
+  var measurePoints   = [];
+  var scaleMmPerPx    = null;
+  var measuredMm      = null;
+  var currentUnit     = 'cm';
+  var selectedLabel   = null;
+  var photoSrc        = null;
+  var detectedScale   = null;
+  var detectedRef     = null;
+
+  // ── Load photo ─────────────────────────────────────────────────────────────
+  if (item) {
+    photoSrc = item.thumbnail || (item.photos && item.photos[0]) || null;
+  }
+
+  if (!photoSrc) {
+    alert('No photo found for this item. Please add a photo first.');
+    goBack();
+  }
+
+  // ── Render reference picker ────────────────────────────────────────────────
+  document.getElementById('ref-list').innerHTML = REFS.map(function(ref) {
+    return '<div class="ref-option" id="ref-' + ref.id + '" onclick="selectRef(\'' + ref.id + '\')">'
+      + '<div class="ref-icon" style="font-size:22px">' + ref.icon + '</div>'
+      + '<div><div class="ref-name">' + ref.name + '</div>'
+      + '<div class="ref-dims">' + ref.dims + '</div></div>'
+      + '</div>';
+  }).join('');
+
+  function selectRef(id) {
+    selectedRef = REFS.find(function(r) { return r.id === id; });
+    REFS.forEach(function(r) {
+      document.getElementById('ref-' + r.id).classList.toggle('selected', r.id === id);
+    });
+    document.getElementById('ref-next-btn').disabled = false;
+  }
+
+  // ── Render label chips ─────────────────────────────────────────────────────
+  document.getElementById('label-grid').innerHTML = LABELS.map(function(label) {
+    return '<button class="label-chip" onclick="selectLabel(\'' + label + '\')">' + label + '</button>';
+  }).join('');
+
+  document.getElementById('custom-label').addEventListener('input', function() {
+    if (this.value.trim()) {
+      selectedLabel = this.value.trim();
+      document.querySelectorAll('.label-chip').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      updateSaveBtn();
+    }
+  });
+
+  function selectLabel(label) {
+    selectedLabel = label;
+    document.getElementById('custom-label').value = '';
+    document.querySelectorAll('.label-chip').forEach(function(c) {
+      c.classList.toggle('selected', c.textContent === label);
+    });
+    document.getElementById('result-label-name').textContent = label;
+    updateSaveBtn();
+  }
+
+  function updateSaveBtn() {
+    document.getElementById('save-btn').disabled = !selectedLabel;
+  }
+
+  // ── Canvas setup ───────────────────────────────────────────────────────────
+  function setupCanvas(canvasId, onTap) {
+    var canvas = document.getElementById(canvasId);
+    var img = new Image();
+    img.onload = function() {
+      var displayW = canvas.parentElement.clientWidth;
+      var scale = displayW / img.naturalWidth;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.style.width = displayW + 'px';
+      canvas.style.height = (img.naturalHeight * scale) + 'px';
+      canvas._img = img;
+      canvas._scale = scale;
+      drawCanvas(canvas, []);
+    };
+    img.src = photoSrc;
+
+    canvas.addEventListener('click', function(e) {
+      var rect = canvas.getBoundingClientRect();
+      var scaleX = canvas.width / rect.width;
+      var scaleY = canvas.height / rect.height;
+      var x = (e.clientX - rect.left) * scaleX;
+      var y = (e.clientY - rect.top) * scaleY;
+      onTap({ x: x, y: y });
+    });
+
+    return canvas;
+  }
+
+  function drawCanvas(canvas, points, color) {
+    color = color || '#FAB413';
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(canvas._img, 0, 0);
+    if (points.length >= 1) drawPoint(ctx, points[0], color);
+    if (points.length >= 2) {
+      drawPoint(ctx, points[1], color);
+      drawLine(ctx, points[0], points[1], color);
+    }
+  }
+
+  function drawPoint(ctx, p, color) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function drawLine(ctx, a, b, color) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Stage 2: Mark reference manually ──────────────────────────────────────
+  var refCanvas;
+
+  function goToRefDraw() {
+    showStage('stage-ref-draw');
+    document.getElementById('ref-draw-sub').textContent =
+      'Step 2 of 4 — Tap two edges of ' + selectedRef.name;
+    refPoints = [];
+    refCanvas = setupCanvas('ref-canvas', function(pt) {
+      if (refPoints.length >= 2) return;
+      refPoints.push(pt);
+      drawCanvas(refCanvas, refPoints, '#FF2800');
+      if (refPoints.length === 1) {
+        document.getElementById('ref-instruction').textContent = 'Tap the opposite edge';
+      }
+      if (refPoints.length === 2) {
+        document.getElementById('ref-instruction').textContent = '✓ Reference marked';
+        calibrateScale();
+      }
+    });
+  }
+
+  function calibrateScale() {
+    var dx = refPoints[1].x - refPoints[0].x;
+    var dy = refPoints[1].y - refPoints[0].y;
+    var pxDistance = Math.sqrt(dx * dx + dy * dy);
+    var knownMm = Math.max(selectedRef.mmWidth, selectedRef.mmHeight);
+    scaleMmPerPx = knownMm / pxDistance;
+    setTimeout(function() { goToMeasure(); }, 600);
+  }
+
+  function resetRefPoints() {
+    refPoints = [];
+    drawCanvas(refCanvas, []);
+    document.getElementById('ref-instruction').textContent = 'Tap one edge of the object';
+  }
+
+  // ── Stage 3: Draw measurement line ────────────────────────────────────────
+  var measureCanvas;
+
+  function goToMeasure() {
+    showStage('stage-measure');
+    measurePoints = [];
+    measureCanvas = setupCanvas('measure-canvas', function(pt) {
+      if (measurePoints.length >= 2) return;
+      measurePoints.push(pt);
+      drawCanvas(measureCanvas, measurePoints, '#FAB413');
+      if (measurePoints.length === 1) {
+        document.getElementById('measure-instruction').textContent = 'Tap end point';
+      }
+      if (measurePoints.length === 2) {
+        document.getElementById('measure-instruction').textContent = '✓ Line drawn';
+        calculateMeasurement();
+      }
+    });
+  }
+
+  function calculateMeasurement() {
+    var dx = measurePoints[1].x - measurePoints[0].x;
+    var dy = measurePoints[1].y - measurePoints[0].y;
+    var pxDistance = Math.sqrt(dx * dx + dy * dy);
+    measuredMm = pxDistance * scaleMmPerPx;
+    setTimeout(function() { goToLabel(); }, 400);
+  }
+
+  function resetMeasurePoints() {
+    measurePoints = [];
+    drawCanvas(measureCanvas, []);
+    document.getElementById('measure-instruction').textContent = 'Tap start point';
+  }
+
+  // ── Stage 4: Label + save ──────────────────────────────────────────────────
+  function goToLabel() {
+    showStage('stage-label');
+    updateResultDisplay();
+  }
+
+  function setUnit(unit) {
+    currentUnit = unit;
+    document.getElementById('btn-cm').classList.toggle('active', unit === 'cm');
+    document.getElementById('btn-in').classList.toggle('active', unit === 'in');
+    updateResultDisplay();
+  }
+
+  function updateResultDisplay() {
+    if (measuredMm === null) return;
+    var value;
+    if (currentUnit === 'cm') {
+      value = (measuredMm / 10).toFixed(1) + ' cm';
+    } else {
+      value = (measuredMm / 25.4).toFixed(2) + ' in';
+    }
+    document.getElementById('result-display').textContent = value;
+  }
+
+  function saveMeasurement() {
+    var label = selectedLabel || document.getElementById('custom-label').value.trim();
+    if (!label) return;
+    var value = currentUnit === 'cm'
+      ? (measuredMm / 10).toFixed(1) + ' cm'
+      : (measuredMm / 25.4).toFixed(2) + ' in';
+    if (!item.measurements) item.measurements = [];
+    item.measurements.push({ label: label, value: value, mm: measuredMm });
+    items[itemIndex] = item;
+    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+    window.location.href = 'item.html?index=' + itemIndex;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function showStage(id) {
+    ['stage-detecting','stage-ref','stage-ref-draw','stage-measure','stage-label'].forEach(function(s) {
+      document.getElementById(s).style.display = s === id ? 'block' : 'none';
+    });
+  }
+
+  function goBack() {
+    window.location.href = 'item.html?index=' + itemIndex;
+  }
+
+  // ── Auto-detection ─────────────────────────────────────────────────────────
+  async function autoDetect() {
+    showStage('stage-detecting');
+
+    try {
+      var response = await fetch(photoSrc);
+      var blob = await response.blob();
+      var formData = new FormData();
+      formData.append('file', blob, 'photo.jpg');
+
+      var result = await fetch('http://localhost:8000/detect-reference', {
+        method: 'POST',
+        body: formData
+      });
+
+      var data = await result.json();
+
+      if (data.found) {
+        detectedScale = data.scale_mm_per_px;
+        detectedRef = data.reference;
+
+        document.getElementById('detect-spinner').style.display = 'none';
+        document.getElementById('detect-result').style.display = 'block';
+        document.getElementById('detect-result-text').textContent =
+          '✓ Found: ' + data.reference.replace(/_/g, ' ');
+        document.getElementById('detect-confidence-text').textContent =
+          Math.round(data.confidence * 100) + '% confidence';
+        document.getElementById('detect-actions').style.display = 'block';
+        document.getElementById('btn-use-detected').textContent =
+          'Use ' + data.reference.replace(/_/g, ' ') + ' as reference';
+
+      } else {
+        document.getElementById('detect-spinner').textContent =
+          'No reference object found automatically.';
+        document.getElementById('detect-actions').style.display = 'block';
+        document.getElementById('btn-use-detected').style.display = 'none';
+      }
+
+    } catch(err) {
+      document.getElementById('detect-spinner').textContent =
+        'Could not reach detection server.';
+      document.getElementById('detect-actions').style.display = 'block';
+      document.getElementById('btn-use-detected').style.display = 'none';
+    }
+  }
+
+  function useDetectedReference() {
+    scaleMmPerPx = detectedScale;
+    goToMeasure();
+  }
+
+  // kick off on page load
+  autoDetect();
+</script>
+</body>
+</html>
