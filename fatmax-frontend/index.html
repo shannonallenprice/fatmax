@@ -170,16 +170,16 @@ const items = saved.length ? saved : defaults;
       el.innerHTML = '<div class="empty">No items found</div>';
       return;
     }
-    el.innerHTML = list.map(item => `
-      <div class="item">
-        <div class="thumb">${item.thumbnail ? '<img src="' + item.thumbnail + '" style="width:100%;height:100%;object-fit:cover"/>' : thumbSVG}</div>
-          <div class="item-info">
-          <div class="item-name">${item.name}</div>
-          <div class="item-sku">${item.sku}</div>
-        </div>
-        <div class="chevron">›</div>
-      </div>
-    `).join('');
+    el.innerHTML = list.map((item, i) => `
+  <div class="item" onclick="window.location.href='item.html?index=${i}'">
+    <div class="thumb">${item.thumbnail ? `<img src="${item.thumbnail}" style="width:100%;height:100%;object-fit:cover"/>` : thumbSVG}</div>
+    <div class="item-info">
+      <div class="item-name">${item.name}</div>
+      <div class="item-sku">${item.sku}</div>
+    </div>
+    <div class="chevron">›</div>
+  </div>
+`).join('');
   }
 
   document.getElementById('search').addEventListener('input', function() {
