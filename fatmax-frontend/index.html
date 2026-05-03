@@ -4,7 +4,128 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fatmax</title>
-<link rel="stylesheet" href="styles.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #FFFDF7;
+      color: #1a1a1a;
+      max-width: 390px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 48px 20px 16px;
+      border-bottom: 2px solid #1a1a1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    #item-count {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      margin-top: 5px;
+      text-transform: uppercase;
+    }
+
+    #new-btn {
+      background: #FAB413;
+      color: #000000;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 10px 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    #new-btn:active { opacity: 0.85; }
+
+    .search-bar {
+      padding: 10px 20px;
+      border-bottom: 1px solid #e0ddd6;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-bar input {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: transparent;
+      border: none;
+      outline: none;
+      width: 100%;
+      color: #1a1a1a;
+      letter-spacing: 0.5px;
+    }
+
+    .search-bar input::placeholder { color: #aaa; }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #e8e6e0;
+      cursor: pointer;
+    }
+
+    .item:active { background: #f5f3ee; }
+
+    .thumb {
+      width: 52px;
+      height: 52px;
+      background: #f0ede6;
+      border: 1px solid #dddad2;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .item-info { flex: 1; min-width: 0; }
+
+    .item-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+
+    .item-sku {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .chevron { color: #ccc; font-size: 20px; }
+
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      font-size: 11px;
+      color: #aaa;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+  </style>
 </head>
 <body>
 
