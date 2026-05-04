@@ -4,7 +4,7 @@
   <script src="supabase.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fatmax — Sign Up</title>
+  <title>Fatmax — Log In</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -115,7 +115,7 @@
       color: #1a1a1a;
     }
 
-    .login-link {
+    .signup-link {
       display: block;
       text-align: center;
       font-size: 10px;
@@ -128,17 +128,17 @@
       border-top: 1px solid #e0ddd6;
     }
 
-    .login-link:active { color: #1a1a1a; }
+    .signup-link:active { color: #1a1a1a; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>FATMAX</h1>
-  <div class="sub">Create account</div>
+  <div class="sub">Log in</div>
 </header>
 
-<!-- Sign-up form -->
+<!-- Login form -->
 <div id="form-state">
   <div class="form-wrap">
     <div class="field-label">Email address</div>
@@ -151,11 +151,11 @@
       autocapitalize="none"
     />
     <div class="error-msg" id="error-msg"></div>
-    <button class="btn-primary" id="submit-btn" onclick="handleSignup()">
+    <button class="btn-primary" id="submit-btn" onclick="handleLogin()">
       Send magic link
     </button>
   </div>
-  <a class="login-link" href="login.html">Already have an account? Sign in</a>
+  <a class="signup-link" href="signup.html">No account yet? Sign up</a>
 </div>
 
 <!-- Confirmation message -->
@@ -168,12 +168,12 @@
   <div class="confirm-title">Check your email</div>
   <div class="confirm-body">
     We sent a magic link to <span class="confirm-email" id="confirm-email"></span>.
-    Click the link in the email to finish signing in — no password needed.
+    Click the link to log in — no password needed.
   </div>
 </div>
 
 <script>
-  async function handleSignup() {
+  async function handleLogin() {
     var email = document.getElementById('email-input').value.trim();
     var errorEl = document.getElementById('error-msg');
     var btn = document.getElementById('submit-btn');
@@ -195,7 +195,7 @@
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY
         },
-        body: JSON.stringify({ email: email, create_user: true })
+        body: JSON.stringify({ email: email, create_user: false })
       });
 
       if (!res.ok) {
@@ -221,7 +221,7 @@
   }
 
   document.getElementById('email-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleSignup();
+    if (e.key === 'Enter') handleLogin();
   });
 </script>
 </body>
