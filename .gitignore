@@ -19,3 +19,6 @@ DerivedData/
 
 # System
 .DS_Store
+
+#Supabase config (contains sensitive info)
+fatmax-frontend/supabase.js
