@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="supabase.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fatmax — New Item</title>
@@ -339,7 +340,6 @@
 
 <script>
   var photos = [];
-  var selectedIndex = 0;
   var MAX_PHOTOS = 6;
 
   function promptAdd() {
@@ -351,16 +351,17 @@
       var files = Array.from(e.target.files);
       var remaining = MAX_PHOTOS - photos.length;
       files.slice(0, remaining).forEach(function(file) {
-var url = URL.createObjectURL(file);
-photos.push(url);
-selectedIndex = photos.length - 1;
-renderStrip();
-renderMain();
-updateNextBtn();
+        var url = URL.createObjectURL(file);
+        photos.push({ blobUrl: url, file: file });
+        renderStrip();
+        renderMain();
+        updateNextBtn();
       });
       e.target.value = '';
     });
   });
+
+  var selectedIndex = 0;
 
   function renderMain() {
     var img = document.getElementById('main-img');
@@ -371,7 +372,7 @@ updateNextBtn();
       placeholder.style.display = 'flex';
       badge.style.display = 'none';
     } else {
-      img.src = photos[selectedIndex];
+      img.src = photos[selectedIndex].blobUrl;
       img.style.display = 'block';
       placeholder.style.display = 'none';
       badge.style.display = 'block';
@@ -383,12 +384,12 @@ updateNextBtn();
     var strip = document.getElementById('thumb-strip');
     strip.innerHTML = '';
 
-    photos.forEach(function(src, i) {
+    photos.forEach(function(photo, i) {
       var tile = document.createElement('div');
       tile.className = 'thumb-tile' + (i === selectedIndex ? ' selected' : '');
 
       var img = document.createElement('img');
-      img.src = src;
+      img.src = photo.blobUrl;
       img.alt = 'photo ' + (i + 1);
       img.onclick = (function(idx) {
         return function() { selectedIndex = idx; renderMain(); renderStrip(); };
@@ -401,7 +402,7 @@ updateNextBtn();
         return function(e) {
           e.stopPropagation();
           photos.splice(idx, 1);
-          if (selectedIndex >= photos.length) selectedIndex = photos.length - 1;
+          if (selectedIndex >= photos.length) selectedIndex = Math.max(0, photos.length - 1);
           renderStrip();
           renderMain();
           updateNextBtn();
@@ -428,8 +429,8 @@ updateNextBtn();
 
   function goToDetails() {
     var thumbs = document.getElementById('details-thumbs');
-    thumbs.innerHTML = photos.map(function(src) {
-      return '<img class="details-thumb-img" src="' + src + '" alt="thumb"/>';
+    thumbs.innerHTML = photos.map(function(p) {
+      return '<img class="details-thumb-img" src="' + p.blobUrl + '" alt="thumb"/>';
     }).join('');
     document.getElementById('step-photo').style.display = 'none';
     document.getElementById('step-details').style.display = 'block';
@@ -439,50 +440,56 @@ updateNextBtn();
     document.getElementById('sku-input').focus();
   }
 
-function saveItem() {
-  var sku = document.getElementById('sku-input').value.trim();
-  var name = document.getElementById('name-input').value.trim();
-  if (!sku || !name) {
-    alert('Please enter both SKU and item name.');
-    return;
+  // ── Save to Supabase ───────────────────────────────────────────────────────
+  async function saveItem() {
+    var sku = document.getElementById('sku-input').value.trim();
+    var name = document.getElementById('name-input').value.trim();
+    if (!sku || !name) {
+      alert('Please enter both SKU and item name.');
+      return;
+    }
+
+    var saveBtn = document.getElementById('save-btn');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+
+    try {
+      // 1. Create the item record in the database
+      var item = await db.createItem(name, sku);
+
+      // 2. Upload each photo to Supabase Storage
+      for (var i = 0; i < photos.length; i++) {
+        var base64 = await fileToBase64(photos[i].file);
+        var isThumbnail = i === 0;
+        await db.uploadPhoto(item.id, base64, isThumbnail, i);
+
+        // 3. If this is the first photo, save its URL as the thumbnail
+        if (isThumbnail) {
+          var filename = item.id + '/' + Date.now() + '-0.jpg';
+          var thumbnailUrl = SUPABASE_URL + '/storage/v1/object/public/photos/' + filename;
+          await db.updateItem(item.id, { thumbnail_url: thumbnailUrl });
+        }
+      }
+
+      window.location.href = 'index.html';
+
+    } catch(err) {
+      console.error('Save failed:', err);
+      saveBtn.textContent = 'Save item';
+      saveBtn.disabled = false;
+      alert('Something went wrong. Please try again.');
+    }
   }
 
-  // convert first photo to base64 for thumbnail survival across navigation
-  // remaining photos stay as blob URLs for now (backend will replace this)
-  if (photos.length === 0) {
-    persistItem(name, sku, null);
-    return;
-  }
-
-  fetch(photos[0])
-    .then(function(res) { return res.blob(); })
-    .then(function(blob) {
+  // convert File object directly to base64
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
       var reader = new FileReader();
-      reader.onload = function(ev) {
-        persistItem(name, sku, ev.target.result);
-      };
-      reader.readAsDataURL(blob);
+      reader.onloadend = function() { resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-}
-
-function persistItem(name, sku, thumbnailBase64) {
-  try {
-    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
-    items.unshift({
-      name: name,
-      sku: sku,
-      thumbnail: thumbnailBase64,
-      photos: photos
-    });
-    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
-  } catch(e) {
-    // sessionStorage full — save without thumbnail
-    var items = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
-    items.unshift({ name: name, sku: sku, thumbnail: null, photos: [] });
-    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
   }
-  window.location.href = 'index.html';
-}
 
   function goBack() {
     window.location.href = 'index.html';

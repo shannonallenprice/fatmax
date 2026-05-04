@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="supabase.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fatmax — Item</title>
@@ -292,34 +293,53 @@
 </div>
 
 <script>
-  // ── Load item from sessionStorage ──
   var params = new URLSearchParams(window.location.search);
-  var index = parseInt(params.get('index'));
-  var defaultItems = [
-    { name: "Vintage Levi jacket", sku: "SKU-0042", thumbnail: null, photos: [], measurements: [] },
-    { name: "Nike Air Max 90",     sku: "SKU-0031", thumbnail: null, photos: [], measurements: [] },
-    { name: "Carhartt WIP trousers", sku: "SKU-0019", thumbnail: null, photos: [], measurements: [] }
-  ];
-  var items = JSON.parse(sessionStorage.getItem('fatmax-items') || 'null') || defaultItems;
-  var item = items[index];
+  var itemId = params.get('id');
+  var item = null;
+  var photos = [];
+  var measurements = [];
 
-  if (!item) {
-    window.location.href = 'index.html';
+  if (!itemId) window.location.href = 'index.html';
+
+  // ── Load everything ────────────────────────────────────────────────────────
+  async function loadItem() {
+    try {
+      // load item, photos and measurements in parallel
+      var [items, loadedPhotos, loadedMeasurements] = await Promise.all([
+        db.getItems(),
+        db.getPhotos(itemId),
+        db.getMeasurements(itemId)
+      ]);
+
+      item = items.find(function(i) { return i.id === itemId; });
+      if (!item) { window.location.href = 'index.html'; return; }
+
+      photos = loadedPhotos;
+      measurements = loadedMeasurements;
+
+      renderHeader();
+      renderPhotos();
+      renderMeasurements();
+
+    } catch(err) {
+      console.error('Failed to load item:', err);
+      alert('Could not load item.');
+    }
   }
 
-  // ── Populate header ──
-  document.getElementById('item-name').value = item.name;
-  document.getElementById('item-sku').value = item.sku;
+  // ── Header ─────────────────────────────────────────────────────────────────
+  function renderHeader() {
+    document.getElementById('item-name').value = item.name;
+    document.getElementById('item-sku').value = item.sku;
+  }
 
-  // ── Inline save on edit ──
   var saveTimer;
   function scheduleAutoSave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function() {
-      item.name = document.getElementById('item-name').value.trim();
-      item.sku = document.getElementById('item-sku').value.trim();
-      items[index] = item;
-      sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+    saveTimer = setTimeout(async function() {
+      var name = document.getElementById('item-name').value.trim();
+      var sku = document.getElementById('item-sku').value.trim();
+      await db.updateItem(itemId, { name: name, sku: sku });
       var ind = document.getElementById('save-indicator');
       ind.classList.add('visible');
       setTimeout(function() { ind.classList.remove('visible'); }, 1500);
@@ -329,33 +349,35 @@
   document.getElementById('item-name').addEventListener('input', scheduleAutoSave);
   document.getElementById('item-sku').addEventListener('input', scheduleAutoSave);
 
-  // ── Photo grid ──
-  var photos = item.photos || [];
-  if (item.thumbnail && photos.length === 0) photos = [item.thumbnail];
+  // ── Photos ─────────────────────────────────────────────────────────────────
+  function renderPhotos() {
+    var photoLabel = document.getElementById('photo-label');
+    photoLabel.textContent = 'Photos (' + photos.length + ')';
 
-  var photoLabel = document.getElementById('photo-label');
-  photoLabel.textContent = 'Photos (' + photos.length + ')';
+    var grid = document.getElementById('photo-grid');
 
-var grid = document.getElementById('photo-grid');
-if (photos.length === 0) {
-  grid.innerHTML = '<div class="no-photos">No photos</div>';
-} else {
-  var cells = photos.slice();
-  if (cells.length % 2 !== 0) cells.push(null);
-  grid.className = 'photo-grid';
-  grid.innerHTML = cells.map(function(src, i) {
-    if (!src) return '<div class="photo-cell-empty"></div>';
-    return '<div class="photo-cell" onclick="openLightbox(' + i + ')">'
-      + '<img src="' + src + '" alt="photo ' + (i+1) + '"/>'
-      + '</div>';
-  }).join('');
-}
+    if (photos.length === 0) {
+      grid.innerHTML = '<div class="no-photos">No photos</div>';
+      return;
+    }
 
-  // ── Lightbox ──
+    var cells = photos.slice();
+    if (cells.length % 2 !== 0) cells.push(null);
+    grid.className = 'photo-grid';
+    grid.innerHTML = cells.map(function(photo, i) {
+      if (!photo) return '<div class="photo-cell-empty"></div>';
+      return '<div class="photo-cell" onclick="openLightbox(' + i + ')">'
+        + '<img src="' + photo.url + '" alt="photo ' + (i+1) + '"/>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ── Lightbox ───────────────────────────────────────────────────────────────
   var lightboxIndex = 0;
+
   function openLightbox(i) {
     lightboxIndex = i;
-    document.getElementById('lightbox-img').src = photos[i];
+    document.getElementById('lightbox-img').src = photos[i].url;
     document.getElementById('lightbox-counter').textContent =
       (i + 1) + ' / ' + photos.length;
     document.getElementById('lightbox').classList.add('open');
@@ -365,17 +387,21 @@ if (photos.length === 0) {
     document.getElementById('lightbox').classList.remove('open');
   }
 
-  // swipe to close lightbox
   document.getElementById('lightbox').addEventListener('click', function(e) {
     if (e.target === this) closeLightbox();
   });
 
-  // ── Measurements ──
-  var measurements = item.measurements || [];
-  var measureEmpty = document.getElementById('measure-empty');
-  var measureList = document.getElementById('measurements-list');
+  // ── Measurements ───────────────────────────────────────────────────────────
+  function renderMeasurements() {
+    var measureEmpty = document.getElementById('measure-empty');
+    var measureList = document.getElementById('measurements-list');
 
-  if (measurements.length > 0) {
+    if (measurements.length === 0) {
+      measureEmpty.style.display = 'block';
+      measureList.innerHTML = '';
+      return;
+    }
+
     measureEmpty.style.display = 'none';
     measureList.innerHTML = measurements.map(function(m) {
       return '<div class="measurement-row">'
@@ -385,17 +411,18 @@ if (photos.length === 0) {
     }).join('');
   }
 
-function startMeasure() {
-  window.location.href = 'measure.html?index=' + index;
-}
+  function startMeasure() {
+    window.location.href = 'measure.html?id=' + itemId;
+  }
 
-  // ── Delete ──
-  function deleteItem() {
-    if (!confirm('Delete ' + item.name + '? This cannot be undone.')) return;
-    items.splice(index, 1);
-    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  async function deleteItem() {
+    if (!confirm('Delete ' + (item ? item.name : 'this item') + '? This cannot be undone.')) return;
+    await db.deleteItem(itemId);
     window.location.href = 'index.html';
   }
+
+  loadItem();
 </script>
 </body>
 </html>

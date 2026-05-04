@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="supabase.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Fatmax — Measure</title>
@@ -323,10 +324,29 @@
   ];
 
   // ── State ──────────────────────────────────────────────────────────────────
-  var params      = new URLSearchParams(window.location.search);
-  var itemIndex   = parseInt(params.get('index'));
-  var items       = JSON.parse(sessionStorage.getItem('fatmax-items') || '[]');
-  var item        = items[itemIndex];
+var params    = new URLSearchParams(window.location.search);
+var itemId    = params.get('id');
+var item      = null;
+var photoSrc  = null;
+
+async function loadItem() {
+  try {
+    var items = await db.getItems();
+    item = items.find(function(i) { return i.id === itemId; });
+    var photos = await db.getPhotos(itemId);
+    photoSrc = photos.length > 0 ? photos[0].url : null;
+    if (!photoSrc) {
+      alert('No photo found. Please add a photo first.');
+      goBack();
+      return;
+    }
+    autoDetect();
+  } catch(err) {
+    console.error(err);
+    alert('Could not load item.');
+    goBack();
+  }
+}
 
   var selectedRef     = null;
   var refPoints       = [];
@@ -340,14 +360,7 @@
   var detectedRef     = null;
 
   // ── Load photo ─────────────────────────────────────────────────────────────
-  if (item) {
-    photoSrc = item.thumbnail || (item.photos && item.photos[0]) || null;
-  }
-
-  if (!photoSrc) {
-    alert('No photo found for this item. Please add a photo first.');
-    goBack();
-  }
+  loadItem();
 
   // ── Render reference picker ────────────────────────────────────────────────
   document.getElementById('ref-list').innerHTML = REFS.map(function(ref) {
@@ -554,18 +567,15 @@
     document.getElementById('result-display').textContent = value;
   }
 
-  function saveMeasurement() {
-    var label = selectedLabel || document.getElementById('custom-label').value.trim();
-    if (!label) return;
-    var value = currentUnit === 'cm'
-      ? (measuredMm / 10).toFixed(1) + ' cm'
-      : (measuredMm / 25.4).toFixed(2) + ' in';
-    if (!item.measurements) item.measurements = [];
-    item.measurements.push({ label: label, value: value, mm: measuredMm });
-    items[itemIndex] = item;
-    sessionStorage.setItem('fatmax-items', JSON.stringify(items));
-    window.location.href = 'item.html?index=' + itemIndex;
-  }
+  async function saveMeasurement() {
+  var label = selectedLabel || document.getElementById('custom-label').value.trim();
+  if (!label) return;
+  var value = currentUnit === 'cm'
+    ? (measuredMm / 10).toFixed(1) + ' cm'
+    : (measuredMm / 25.4).toFixed(2) + ' in';
+  await db.createMeasurement(itemId, label, value, measuredMm);
+  window.location.href = 'item.html?id=' + itemId;
+}
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function showStage(id) {
@@ -574,9 +584,9 @@
     });
   }
 
-  function goBack() {
-    window.location.href = 'item.html?index=' + itemIndex;
-  }
+function goBack() {
+  window.location.href = itemId ? 'item.html?id=' + itemId : 'index.html';
+}
 
   // ── Auto-detection ─────────────────────────────────────────────────────────
   async function autoDetect() {
@@ -629,8 +639,6 @@
     goToMeasure();
   }
 
-  // kick off on page load
-  autoDetect();
 </script>
 </body>
 </html>
