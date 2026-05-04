@@ -336,20 +336,20 @@
   var photoLabel = document.getElementById('photo-label');
   photoLabel.textContent = 'Photos (' + photos.length + ')';
 
-  var grid = document.getElementById('photo-grid');
-  if (photos.length === 0) {
-    grid.innerHTML = '<div class="no-photos">No photos</div>';
-  } else {
-    // pad to even number for clean 2-col grid
-    var cells = photos.slice();
-    if (cells.length % 2 !== 0) cells.push(null);
-    grid.innerHTML = '<div class="photo-grid">' + cells.map(function(src, i) {
-      if (!src) return '<div class="photo-cell-empty"></div>';
-      return '<div class="photo-cell" onclick="openLightbox(' + i + ')">'
-        + '<img src="' + src + '" alt="photo ' + (i+1) + '"/>'
-        + '</div>';
-    }).join('') + '</div>';
-  }
+var grid = document.getElementById('photo-grid');
+if (photos.length === 0) {
+  grid.innerHTML = '<div class="no-photos">No photos</div>';
+} else {
+  var cells = photos.slice();
+  if (cells.length % 2 !== 0) cells.push(null);
+  grid.className = 'photo-grid';
+  grid.innerHTML = cells.map(function(src, i) {
+    if (!src) return '<div class="photo-cell-empty"></div>';
+    return '<div class="photo-cell" onclick="openLightbox(' + i + ')">'
+      + '<img src="' + src + '" alt="photo ' + (i+1) + '"/>'
+      + '</div>';
+  }).join('');
+}
 
   // ── Lightbox ──
   var lightboxIndex = 0;
@@ -385,9 +385,9 @@
     }).join('');
   }
 
-  function startMeasure() {
-    alert('Measurement flow coming soon!');
-  }
+function startMeasure() {
+  window.location.href = 'measure.html?index=' + index;
+}
 
   // ── Delete ──
   function deleteItem() {
