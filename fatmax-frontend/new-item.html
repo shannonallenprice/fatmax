@@ -462,13 +462,10 @@
       for (var i = 0; i < photos.length; i++) {
         var base64 = await fileToBase64(photos[i].file);
         var isThumbnail = i === 0;
-        await db.uploadPhoto(item.id, base64, isThumbnail, i);
+        var photoResult = await db.uploadPhoto(item.id, base64, isThumbnail, i);
 
-        // 3. If this is the first photo, save its URL as the thumbnail
         if (isThumbnail) {
-          var filename = item.id + '/' + Date.now() + '-0.jpg';
-          var thumbnailUrl = SUPABASE_URL + '/storage/v1/object/public/photos/' + filename;
-          await db.updateItem(item.id, { thumbnail_url: thumbnailUrl });
+          await db.updateItem(item.id, { thumbnail_url: photoResult[0].url });
         }
       }
 
